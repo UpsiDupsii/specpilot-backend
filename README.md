@@ -1,40 +1,80 @@
-# SpecPilot AI Backend
+# SpecPilot AI (Backend)
 
-SpecPilot AI is an enterprise-grade document intelligence and workflow automation platform. It allows organizations to upload standard operating procedures (SOPs), ISO documents, and contracts, enabling them to chat with their documents, perform automated cross-document gap analysis, and trigger autonomous workflows.
-
-This repository contains the backend microservices architecture, built with an API-first approach.
+SpecPilot AI is an enterprise-grade document intelligence and Retrieval-Augmented Generation (RAG) platform. It allows users to asynchronously ingest complex documents, perform semantic searches, and conduct multi-document gap analysis using local LLMs.
 
 ## Architecture & Tech Stack
+*   **Core API:** Python 3.12, Django 5, Django REST Framework (DRF)
+*   **Asynchronous Tasks:** Celery + Redis
+*   **Database:** PostgreSQL 15
+*   **Vector Store:** Milvus 2.4 (Dockerized)
+*   **Local AI / RAG:** Ollama (qwen2.5:3b), LangChain, SentenceTransformers (BAAI/bge-small-en-v1.5)
+*   **CI/CD:** GitHub Actions (Automated Flake8 Linting & Django Unit Testing)
 
-The system is designed for local, resource-constrained execution (optimized for 4GB VRAM) using quantized GGUF models, demonstrating robust system design, asynchronous processing, and separation of concerns.
-
-* **Core Framework:** Python 3.12, Django 5, Django REST Framework
-* **Task Broker & Caching:** Redis
-* **Asynchronous Workers:** Celery
-* **Relational Database:** PostgreSQL (App Metadata & Document Text)
-* **Vector Database:** Milvus (Embeddings & Semantic Search)
-* **AI/RAG Layer:** Ollama (Qwen2.5:7B / Llama 3.1 8B), LangChain/LlamaIndex
-* **Agentic Orchestration:** LangGraph
-* **Workflow Automation:** n8n Webhooks
-* **Deployment:** Docker & Docker Compose
-
-## Phase Roadmap
-
-### Phase 1: Core Document Intelligence
-- Multipart document ingestion (PDF, DOCX, TXT).
-- Asynchronous chunking and embedding generation via Celery.
-- Vector storage in Milvus with metadata isolated in PostgreSQL.
-- Retrieval-Augmented Generation (RAG) chat endpoints.
-
-### Phase 2: Multi-Document RAG
-- Cross-document retrieval and semantic comparison.
-- Automated compliance checking and gap analysis matrix generation (e.g., comparing an internal SOP against an ISO standard).
-
-### Phase 3: Agentic Workflows
-- LangGraph-powered AI agents capable of autonomous tool-calling.
-- Automatic extraction of remediation tasks.
-- Integration with external workflow engines (n8n) via webhooks.
+## Current Status
+*   [x] **Phase 1: RAG Orchestration** - Async PDF parsing, semantic chunking, vector storage, and Ollama chat integration. *(Completed)*
+*   [ ] **Phase 2: Gap Analysis Engine** - Multi-document semantic comparison and discrepancy reporting. *(In Progress)*
 
 ## Local Development Setup
 
-(Instructions to be added as infrastructure is finalized)
+### 1. Prerequisites
+*   Docker & Docker Compose
+*   Python 3.12+
+*   [Ollama](https://ollama.com/) installed locally.
+
+### 2. Start Infrastructure
+Boot up PostgreSQL, Redis, and Milvus using Docker Compose:
+
+```
+
+bash
+docker compose up -d
+
+```
+
+### 3. Pull the Local LLM
+Ensure Ollama is running, then pull the required model:
+
+```
+
+bash
+ollama pull qwen2.5:3b
+
+```
+
+### 4. Setup Python Environment
+
+```
+
+bash
+python -m venv wenv
+wenv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+
+```
+
+### 5. Run the Application
+You need two terminal windows running simultaneously.
+
+**Terminal 1 (Django Server):**
+
+```
+
+bash
+python manage.py runserver
+
+```
+
+**Terminal 2 (Celery Worker):**
+
+```
+
+bash
+celery -A specpilot_core worker --loglevel=info -P solo
+
+```
+
+## API Documentation
+The API is fully documented using OpenAPI 3 (Swagger). Once the Django server is running, navigate to:
+*   **Swagger UI:** `http://127.0.0.1:8000/api/docs/`
+*   **OpenAPI Schema:** `http://127.0.0.1:8000/api/schema/`
