@@ -14,6 +14,24 @@ jobs:
   quality-assurance:
     name: Code Quality & Testing
     runs-on: ubuntu-latest
+    
+    # 1. Spin up a temporary Postgres database for the tests
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: specpilot_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 1234
+        ports:
+          - 5432:5432
+        # Wait until postgres is ready before running tests
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,6 +50,13 @@ jobs:
       - name: Lint with flake8
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         
+      # 2. Pass the database credentials as environment variables to Django
       - name: Run Django Tests
+        env:
+          DB_NAME: specpilot_db
+          DB_USER: postgres
+          DB_PASSWORD: 1234
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
         run: python manage.py test
         
