@@ -11,7 +11,8 @@ on:
       - staging
 
 jobs:
-  test:
+  quality-assurance:
+    name: Code Quality & Testing
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
