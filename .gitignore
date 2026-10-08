@@ -5,3 +5,7 @@ __pycache__/
 db.sqlite3
 .idea/
 .vscode/
+
+
+media/
+milvus_data.db
