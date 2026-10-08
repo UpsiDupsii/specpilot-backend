@@ -6,9 +6,9 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from sentence_transformers import SentenceTransformer
 
-from .models import Document, DocumentChunk
-from .serializers import DocumentSerializer
-from .tasks import process_document_task
+from .models import Document, DocumentChunk, ComparisonReport
+from .serializers import DocumentSerializer, ComparisonReportSerializer
+from .tasks import process_document_task, run_comparison_task
 from .milvus_utils import get_milvus_client
 
 MODEL_NAME = os.getenv('EMBEDDING_MODEL_NAME', 'BAAI/bge-small-en-v1.5')
@@ -94,3 +94,16 @@ class DocumentChatView(APIView):
         except requests.exceptions.RequestException as e:
             return Response({"error": f"LLM backend error: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
         
+class ComparisonReportListCreateView(generics.ListCreateAPIView):
+    queryset = ComparisonReport.objects.all().order_by('-created_at')
+    serializer_class = ComparisonReportSerializer
+
+    def perform_create(self, serializer):
+        # Save the report as PENDING
+        report = serializer.save()
+        # Dispatch the background AI task
+        run_comparison_task.delay(str(report.id))
+
+class ComparisonReportDetailView(generics.RetrieveDestroyAPIView):
+    queryset = ComparisonReport.objects.all()
+    serializer_class = ComparisonReportSerializer
