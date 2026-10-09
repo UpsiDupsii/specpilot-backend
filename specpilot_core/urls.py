@@ -20,7 +20,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/documents/', include('documents.urls')),
+    path('api/v1/', include('documents.urls')),
+    path('api/v1/', include('agents.urls')),
 
     # OpenAPI Schema and Swagger UI
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

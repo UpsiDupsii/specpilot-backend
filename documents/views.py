@@ -50,10 +50,10 @@ class DocumentDetailView(generics.RetrieveDestroyAPIView):
         instance.delete()
 
 class DocumentChatView(APIView):
-    def post(self, request, pk):
-        query = request.data.get('query')
+    def post(self, request, pk, query_override=None):
+        query = query_override or request.data.get('query') or request.data.get('message')
         if not query:
-            return Response({"error": "Query is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Query or message is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         query_vector = embedder.encode(query).tolist()
 
@@ -79,7 +79,7 @@ class DocumentChatView(APIView):
 
         ollama_url = f"{os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434')}/api/generate"
         prompt = f"Use the following document context to answer the user's question.\n\nContext:\n{context}\n\nQuestion: {query}\nAnswer:"
-        
+
         llm_payload = {
             "model": os.getenv('OLLAMA_MODEL', 'qwen2.5:3b'),
             "prompt": prompt,
@@ -107,3 +107,22 @@ class ComparisonReportListCreateView(generics.ListCreateAPIView):
 class ComparisonReportDetailView(generics.RetrieveDestroyAPIView):
     queryset = ComparisonReport.objects.all()
     serializer_class = ComparisonReportSerializer
+
+class ChatAPIView(APIView):
+    """
+    Blueprint-compliant Chat endpoint:
+    POST /api/v1/chat/
+    Body: {"document_id": "<uuid>", "message": "<text>"}
+    """
+    def post(self, request):
+        doc_id = request.data.get('document_id')
+        query = request.data.get('message') or request.data.get('query')
+
+        if not doc_id:
+            return Response({"error": "document_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not query:
+            return Response({"error": "message is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Delegate directly to our existing logic
+        return DocumentChatView().post(request, pk=doc_id, query_override=query)
+    
